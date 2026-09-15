@@ -9,7 +9,7 @@ transliteration differences); the result is validated and written out as a
 standard [mm:ss.xx]-tagged .lrc file.
 
 Usage:
-    python lrc_sync.py SONG.mp3 LYRICS.txt --language ja [--whisper-model large-v3] [--out SONG.lrc]
+    auto-sync-lrc SONG.mp3 LYRICS.txt --language ja [--whisper-model large-v3] [--out SONG.lrc]
 
 Env vars (see README.md for the full list): set ANTHROPIC_API_KEY (default
 provider) or OPENAI_API_KEY / LLM_PROVIDER+LLM_API_KEY+LLM_BASE_URL for any
@@ -22,8 +22,10 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-from llm_align import align_lines
-from whisper_transcribe import transcribe
+from dotenv import load_dotenv, find_dotenv
+
+from auto_sync_lrc.align import align_lines
+from auto_sync_lrc.transcribe import transcribe
 
 TAG_RE = re.compile(r"^\[[^\]]+\]$")
 
@@ -164,6 +166,8 @@ def run(mp3_path: Path, lyrics_path: Path, language: str, whisper_model: str, ou
 
 
 def main() -> None:
+    load_dotenv(find_dotenv(usecwd=True))  # picks up a .env from the cwd or any parent, if present
+
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("mp3", type=Path, help="path to the song's MP3 file")
     parser.add_argument("lyrics", type=Path, help="path to the plain-text lyrics file")

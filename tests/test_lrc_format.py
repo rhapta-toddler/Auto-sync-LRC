@@ -1,11 +1,6 @@
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
 import pytest
 
-from lrc_sync import (
+from auto_sync_lrc.cli import (
     LyricLine,
     build_lrc,
     format_timestamp,

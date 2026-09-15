@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "auto-sync-lrc"
+version = "0.1.0"
+description = "Sync plain-text lyrics to any MP3 into a timed .lrc file, using local Whisper transcription plus an LLM for alignment."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+dependencies = [
+    "faster-whisper",
+    "anthropic",
+    "openai",
+    "python-dotenv",
+]
+
+[project.urls]
+Homepage = "https://github.com/luoarting-hub/Auto-sync-LRC"
+
+[project.scripts]
+auto-sync-lrc = "auto_sync_lrc.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.optional-dependencies]
+test = ["pytest"]
