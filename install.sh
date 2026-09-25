@@ -1,17 +1,9 @@
 #!/usr/bin/env bash
-# One-command native setup for macOS/Linux/WSL: checks ffmpeg, creates a
+# One-command native setup for macOS/Linux/WSL: creates a
 # virtualenv, installs Auto-sync-LRC into it, and writes a .env with your
 # chosen LLM provider's API key. Run it from the repo root: ./install.sh
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
-
-if ! command -v ffmpeg >/dev/null 2>&1; then
-    echo "ffmpeg is not on PATH."
-    echo "  macOS:          brew install ffmpeg"
-    echo "  Debian/Ubuntu:  sudo apt install ffmpeg"
-    echo "Install it, then re-run this script."
-    exit 1
-fi
 
 echo "Creating virtual environment in .venv ..."
 python3 -m venv .venv

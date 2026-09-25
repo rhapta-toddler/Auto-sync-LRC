@@ -17,14 +17,15 @@ other OpenAI-compatible provider.
 """
 import argparse
 import re
-import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Callable
 
 from dotenv import load_dotenv, find_dotenv
 
 from auto_sync_lrc.align import align_lines
+from auto_sync_lrc.errors import SyncError
 from auto_sync_lrc.transcribe import transcribe
 
 TAG_RE = re.compile(r"^\[[^\]]+\]$")
@@ -61,20 +62,16 @@ def parse_lyrics(source: str) -> ParsedLyrics:
     return ParsedLyrics(raw_lines=raw_lines, sung=sung)
 
 
-def probe_duration(mp3_path: Path) -> float:
-    result = subprocess.run(
-        [
-            "ffprobe",
-            "-v", "error",
-            "-show_entries", "format=duration",
-            "-of", "csv=p=0",
-            str(mp3_path),
-        ],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    return float(result.stdout.strip())
+def probe_duration(audio_path: Path) -> float:
+    import av
+
+    try:
+        with av.open(str(audio_path)) as container:
+            if container.duration is None:
+                raise SyncError(f"could not read the length of {audio_path.name}")
+            return container.duration / av.time_base
+    except av.error.FFmpegError as exc:
+        raise SyncError(f"could not open {audio_path.name} as audio: {exc}") from exc
 
 
 def format_timestamp(seconds: float) -> str:
@@ -130,39 +127,45 @@ def build_lrc(parsed: ParsedLyrics, timestamps: dict[int, float]) -> str:
     return "\n".join(out_lines) + "\n"
 
 
-def run(mp3_path: Path, lyrics_path: Path, language: str, whisper_model: str, out_path: Path, provider: str | None = None) -> None:
-    source = lyrics_path.read_text(encoding="utf-8")
-    parsed = parse_lyrics(source)
+def sync_song(
+    mp3_path: Path,
+    lyrics_text: str,
+    language: str,
+    whisper_model: str,
+    out_path: Path,
+    provider: str | None = None,
+    log: Callable[[str], None] = print,
+) -> Path:
+    """Run the whole pipeline and write the .lrc. Raises SyncError on any user-actionable problem."""
+    parsed = parse_lyrics(lyrics_text)
     if not parsed.sung:
-        sys.exit("no sung lines found in the lyrics file - nothing to time")
+        raise SyncError("No lyrics found - paste or open the song's words first.")
 
-    print(f"probing {mp3_path} ...")
+    log(f"Reading {mp3_path.name} ...")
     duration = probe_duration(mp3_path)
-    print(f"duration: {duration:.2f}s, {len(parsed.sung)} sung lines to time")
+    log(f"Song length {duration:.0f}s, {len(parsed.sung)} lyric lines to time.")
 
-    print(f"transcribing with faster-whisper ({whisper_model}) ...")
+    log(f"Listening to the song with Whisper ({whisper_model}). The first run downloads the speech model, which can take a while ...")
     transcript = transcribe(mp3_path, language=language, model_size=whisper_model)
 
-    print("aligning lyric lines against the transcript with the configured LLM ...")
+    log("Matching your lyrics to what was heard ...")
     timestamps = align_lines(parsed.sung, transcript, language=language, provider=provider)
     problems = validate_timestamps(parsed.sung, timestamps, duration)
 
     if problems:
-        print("first alignment attempt had problems, retrying once:")
-        for p in problems:
-            print(f"  - {p}")
+        log("First attempt had problems, retrying once ...")
         timestamps = align_lines(parsed.sung, transcript, language=language, retry_feedback=problems, provider=provider)
         problems = validate_timestamps(parsed.sung, timestamps, duration)
 
     if problems:
-        print("alignment failed validation after retry - refusing to write a guessed .lrc:", file=sys.stderr)
-        for p in problems:
-            print(f"  - {p}", file=sys.stderr)
-        sys.exit(1)
+        raise SyncError(
+            "Could not line the lyrics up with the song reliably, so no file was written:\n- "
+            + "\n- ".join(problems)
+        )
 
-    lrc = build_lrc(parsed, timestamps)
-    out_path.write_text(lrc, encoding="utf-8")
-    print(f"wrote {out_path}")
+    out_path.write_text(build_lrc(parsed, timestamps), encoding="utf-8")
+    log(f"Done: {out_path}")
+    return out_path
 
 
 def main() -> None:
@@ -183,7 +186,11 @@ def main() -> None:
     args = parser.parse_args()
 
     out_path = args.out or args.mp3.with_suffix(".lrc")
-    run(args.mp3, args.lyrics, args.language, args.whisper_model, out_path, provider=args.provider)
+    try:
+        lyrics_text = args.lyrics.read_text(encoding="utf-8")
+        sync_song(args.mp3, lyrics_text, args.language, args.whisper_model, out_path, provider=args.provider)
+    except SyncError as exc:
+        sys.exit(str(exc))
 
 
 if __name__ == "__main__":

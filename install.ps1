@@ -1,15 +1,8 @@
-# One-command native setup for Windows: checks ffmpeg, creates a virtualenv,
+# One-command native setup for Windows: creates a virtualenv,
 # installs Auto-sync-LRC into it, and writes a .env with your chosen LLM
 # provider's API key. Run from the repo root: .\install.ps1
 $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot
-
-if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) {
-    Write-Host "ffmpeg is not on PATH."
-    Write-Host "  winget install ffmpeg   (or) choco install ffmpeg"
-    Write-Host "Install it, then re-run this script."
-    exit 1
-}
 
 Write-Host "Creating virtual environment in .venv ..."
 python -m venv .venv

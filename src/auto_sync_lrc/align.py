@@ -16,7 +16,8 @@ must trace back to a word Whisper actually heard.
 import json
 import os
 import re
-import sys
+
+from auto_sync_lrc.errors import SyncError
 
 SYSTEM_PROMPT = """\
 You align song lyrics to an ASR transcript. You will be given:
@@ -71,7 +72,7 @@ def _parse_response(text: str) -> dict[int, float]:
 
 
 def _resolve_config(provider: str | None):
-    """Work out (provider, api_key, model, base_url) from CLI/env, or exit with a clear message."""
+    """Work out (provider, api_key, model, base_url) from CLI/env, or raise SyncError with a clear message."""
     provider = (provider or os.environ.get("LLM_PROVIDER") or "anthropic").lower()
 
     if provider == "anthropic":
@@ -88,18 +89,17 @@ def _resolve_config(provider: str | None):
         if provider == "openai":
             model = model or "gpt-4o"
         elif not base_url:
-            sys.exit(
+            raise SyncError(
                 f"Provider '{provider}' is not built in by name - set LLM_BASE_URL to its "
                 "OpenAI-compatible chat-completions endpoint (and LLM_MODEL, LLM_API_KEY)."
             )
         if not model:
-            sys.exit(f"No model configured for provider '{provider}'. Set LLM_MODEL (or OPENAI_MODEL).")
+            raise SyncError(f"No model configured for provider '{provider}'. Set LLM_MODEL (or OPENAI_MODEL).")
 
     if not api_key:
-        sys.exit(
-            f"No API key found for provider '{provider}'. Export {key_hint}, e.g.\n"
-            f"  export {key_hint.split(' ')[0]}=...\n"
-            "before running lrc_sync.py. Set LLM_PROVIDER to switch providers "
+        raise SyncError(
+            f"No API key found for provider '{provider}'. Set {key_hint} "
+            "(in the app, paste it into the API key box). Set LLM_PROVIDER to switch providers "
             "(anthropic / openai / any OpenAI-compatible name + LLM_BASE_URL)."
         )
     return provider, api_key, model, base_url
@@ -136,9 +136,18 @@ def align_lines(sung_lines, transcript, language: str, retry_feedback=None, prov
     provider, api_key, model, base_url = _resolve_config(provider)
     user_prompt = _build_user_prompt(sung_lines, transcript, language, retry_feedback)
 
-    if provider == "anthropic":
-        text = _call_anthropic(api_key, model, SYSTEM_PROMPT, user_prompt)
-    else:
-        text = _call_openai_compatible(api_key, model, base_url, SYSTEM_PROMPT, user_prompt)
+    try:
+        if provider == "anthropic":
+            text = _call_anthropic(api_key, model, SYSTEM_PROMPT, user_prompt)
+        else:
+            text = _call_openai_compatible(api_key, model, base_url, SYSTEM_PROMPT, user_prompt)
+    except Exception as exc:
+        raise SyncError(
+            f"The AI service ({provider}) could not be reached or rejected the request. "
+            f"Check the API key, that the account has credit, and the internet connection.\nDetails: {exc}"
+        ) from exc
 
-    return _parse_response(text)
+    try:
+        return _parse_response(text)
+    except (ValueError, KeyError, TypeError) as exc:
+        raise SyncError(f"The AI service returned an answer that could not be read ({exc}). Try again.") from exc
