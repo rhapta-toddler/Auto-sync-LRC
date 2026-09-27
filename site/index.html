@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Auto-sync-LRC — Free app that turns an MP3 and lyrics into a synced .lrc file</title>
+<meta name="description" content="Auto-sync-LRC is a free, open-source Windows app that makes synced .lrc lyrics files. Pick an MP3, paste the lyrics, and get timed lyrics in any language. The audio never leaves your computer.">
+<link rel="canonical" href="https://rhapta-toddler.github.io/Auto-sync-LRC/">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#1f5f8b">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Auto-sync-LRC">
+<meta property="og:title" content="Auto-sync-LRC — MP3 + lyrics in, synced .lrc out">
+<meta property="og:description" content="Free, open-source app that times your lyrics to the song automatically, in any language. Audio stays on your computer.">
+<meta property="og:url" content="https://rhapta-toddler.github.io/Auto-sync-LRC/">
+<meta name="twitter:card" content="summary">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Auto-sync-LRC",
+  "description": "Turns an MP3 song and its plain-text lyrics into a timed .lrc lyrics file. Speech recognition (Whisper) runs locally to find when each word is sung; an AI service then matches the clean lyrics to those timings line by line. Works in any language Whisper supports.",
+  "applicationCategory": "MultimediaApplication",
+  "operatingSystem": "Windows 10, Windows 11; macOS and Linux via pip or Docker",
+  "softwareVersion": "0.2.0",
+  "license": "https://opensource.org/licenses/MIT",
+  "isAccessibleForFree": true,
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "downloadUrl": "https://github.com/rhapta-toddler/Auto-sync-LRC/releases/latest/download/Auto-sync-LRC-Setup.exe",
+  "url": "https://rhapta-toddler.github.io/Auto-sync-LRC/",
+  "codeRepository": "https://github.com/rhapta-toddler/Auto-sync-LRC",
+  "featureList": [
+    "Creates a synced .lrc file from an MP3 and plain-text lyrics",
+    "Works in any language, including Japanese, Korean, Chinese and Cantonese",
+    "Speech recognition runs on your own computer; audio is never uploaded",
+    "Checks the result and refuses to write a guessed file",
+    "Point-and-click Windows app, plus command line, pip and Docker"
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is an LRC file?",
+      "acceptedAnswer": { "@type": "Answer", "text": "An .lrc file is a plain-text lyrics file where every line starts with a timestamp such as [01:23.45]. Music players that support it (for example foobar2000, MusicBee, Poweramp, AIMP and many car and portable players) highlight each line as it is sung." }
+    },
+    {
+      "@type": "Question",
+      "name": "Is Auto-sync-LRC free?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Yes. The app is free and open source under the MIT license. It uses your own API key from an AI service (Anthropic or OpenAI) to match the lyrics; that service bills you directly, and it only receives a few lines of text per song." }
+    },
+    {
+      "@type": "Question",
+      "name": "Is my music uploaded anywhere?",
+      "acceptedAnswer": { "@type": "Answer", "text": "No. Speech recognition runs on your own computer. Only text (the lyrics and the words heard with their timings) is sent to the AI service. Your API key is saved only on your own computer." }
+    },
+    {
+      "@type": "Question",
+      "name": "Which languages does it support?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Any language the Whisper speech-recognition model understands, including English, Spanish, French, German, Portuguese, Russian, Japanese, Korean, Mandarin Chinese and Cantonese. For Cantonese and other less common languages, use the Best quality setting." }
+    },
+    {
+      "@type": "Question",
+      "name": "Why does Windows say it protected my PC?",
+      "acceptedAnswer": { "@type": "Answer", "text": "The app is new and not yet code-signed, so Windows SmartScreen shows a warning. Click More info, then Run anyway. The installer is built in public by GitHub Actions from the open source code." }
+    },
+    {
+      "@type": "Question",
+      "name": "Does it work on Mac or Linux?",
+      "acceptedAnswer": { "@type": "Answer", "text": "There is no one-click installer for Mac or Linux yet. Developers can install it with pip or run the Docker image; both include the same window as the Windows app or a command-line tool." }
+    }
+  ]
+}
+</script>
+
+<style>
+  :root {
+    --bg: #fbfaf7;
+    --surface: #ffffff;
+    --text: #1d232a;
+    --muted: #57616c;
+    --line: #e4e1da;
+    --accent: #1f5f8b;
+    --accent-ink: #ffffff;
+    --accent-soft: #e8f0f6;
+    --hl: #1f5f8b;
+    --code-bg: #f1efe9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14181c;
+      --surface: #1b2026;
+      --text: #e8ebee;
+      --muted: #a2acb6;
+      --line: #2c333b;
+      --accent: #6fb1dd;
+      --accent-ink: #0d1822;
+      --accent-soft: #1d2c38;
+      --hl: #8cc6ec;
+      --code-bg: #232a31;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 17px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  a { color: var(--accent); }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 0 20px; }
+  header.top { border-bottom: 1px solid var(--line); }
+  header.top .wrap { display: flex; align-items: center; justify-content: space-between; height: 60px; gap: 16px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 650; color: var(--text); text-decoration: none; }
+  .brand img { width: 28px; height: 28px; }
+  nav a { color: var(--muted); text-decoration: none; margin-left: 20px; font-size: 15px; }
+  nav a:hover { color: var(--text); }
+
+  .hero { padding: 64px 0 48px; display: grid; grid-template-columns: 1.15fr 1fr; gap: 48px; align-items: center; }
+  h1 { font-size: 44px; line-height: 1.12; margin: 0 0 18px; letter-spacing: -0.02em; }
+  .lede { font-size: 19px; color: var(--muted); margin: 0 0 28px; }
+  .cta { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: var(--accent); color: var(--accent-ink);
+    padding: 14px 22px; border-radius: 10px; font-weight: 650; text-decoration: none; font-size: 17px;
+  }
+  .btn:hover { filter: brightness(1.08); }
+  .btn svg { width: 20px; height: 20px; }
+  .btn-sub { font-size: 14px; color: var(--muted); line-height: 1.4; }
+  .trust { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 22px 0 0; padding: 0; list-style: none; font-size: 14px; color: var(--muted); }
+  .trust li::before { content: "✓ "; color: var(--accent); font-weight: 700; }
+
+  .demo { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; font: 14.5px/1.7 ui-monospace, "Cascadia Mono", Consolas, monospace; box-shadow: 0 8px 30px rgba(0,0,0,.05); }
+  .demo .fname { color: var(--muted); font-size: 13px; margin-bottom: 8px; }
+  .demo .ln { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--muted); }
+  .demo .ln b { color: var(--accent); font-weight: 500; }
+  .demo .ln.on { color: var(--text); font-weight: 600; }
+
+  section { padding: 56px 0; border-top: 1px solid var(--line); }
+  h2 { font-size: 30px; margin: 0 0 10px; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); margin: 0 0 32px; max-width: 640px; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 22px; }
+  .card h3 { margin: 0 0 8px; font-size: 18px; }
+  .card p { margin: 0; color: var(--muted); font-size: 15.5px; }
+  .num { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-weight: 700; margin-bottom: 12px; }
+
+  ol.steps { margin: 0; padding-left: 22px; }
+  ol.steps li { margin: 0 0 10px; }
+  .note { background: var(--accent-soft); border-radius: 10px; padding: 14px 18px; font-size: 15.5px; margin-top: 20px; }
+  code { background: var(--code-bg); padding: 2px 6px; border-radius: 5px; font-size: 0.9em; }
+  pre { background: var(--code-bg); padding: 14px 16px; border-radius: 10px; overflow-x: auto; font-size: 14px; }
+
+  details { border-bottom: 1px solid var(--line); padding: 14px 0; }
+  details:first-of-type { border-top: 1px solid var(--line); }
+  summary { cursor: pointer; font-weight: 600; }
+  details p { margin: 10px 0 0; color: var(--muted); }
+
+  footer { border-top: 1px solid var(--line); padding: 28px 0 40px; color: var(--muted); font-size: 14px; }
+  footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
+  footer a { color: var(--muted); }
+
+  @media (max-width: 760px) {
+    nav { display: none; }
+    .hero { grid-template-columns: 1fr; padding: 40px 0 32px; gap: 32px; }
+    h1 { font-size: 32px; }
+    .lede { font-size: 17px; }
+    .grid3 { grid-template-columns: 1fr; }
+    section { padding: 40px 0; }
+    h2 { font-size: 25px; }
+    .wrap { padding: 0 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="./"><img src="favicon.svg" alt="" width="28" height="28">Auto-sync-LRC</a>
+    <nav aria-label="Sections">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="#install">Install</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <div class="hero">
+      <div>
+        <h1>Synced lyrics for any song, in any language.</h1>
+        <p class="lede">Auto-sync-LRC turns an MP3 and its plain lyrics into a timed <strong>.lrc</strong> file, so every line lights up exactly when it is sung. Pick the song, paste the words, click once.</p>
+        <div class="cta">
+          <a class="btn" id="download"
+             href="https://github.com/rhapta-toddler/Auto-sync-LRC/releases/latest/download/Auto-sync-LRC-Setup.exe"
+             data-goatcounter-click="download-windows" data-goatcounter-title="Download: Windows installer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+            Download for Windows
+          </a>
+          <span class="btn-sub"><span id="release-meta">Free · Windows 10 and 11</span><br><a href="#install">Mac, Linux and developers</a></span>
+        </div>
+        <ul class="trust">
+          <li>Free and open source (MIT)</li>
+          <li>Your audio never leaves your PC</li>
+          <li id="dl-count-item" hidden><span id="dl-count"></span> downloads</li>
+        </ul>
+      </div>
+
+      <div class="demo" aria-label="Example of a synced .lrc file">
+        <div class="fname">twinkle-twinkle.lrc</div>
+        <span class="ln"><b>[00:12.40]</b> Twinkle, twinkle, little star</span>
+        <span class="ln on"><b>[00:16.85]</b> How I wonder what you are</span>
+        <span class="ln"><b>[00:21.30]</b> Up above the world so high</span>
+        <span class="ln"><b>[00:25.72]</b> Like a diamond in the sky</span>
+        <span class="ln"><b>[00:30.18]</b> Twinkle, twinkle, little star</span>
+        <span class="ln"><b>[00:34.61]</b> How I wonder what you are</span>
+      </div>
+    </div>
+  </div>
+
+  <section id="features">
+    <div class="wrap">
+      <h2>What it does</h2>
+      <p class="sub">Timing lyrics by hand means pausing and scrubbing through a song line by line. Auto-sync-LRC listens to the song for you and writes the timestamps.</p>
+      <div class="grid3">
+        <div class="card">
+          <h3>Any language</h3>
+          <p>English, Spanish, French, German, Portuguese, Russian, Japanese, Korean, Mandarin, Cantonese and every other language the Whisper speech model understands.</p>
+        </div>
+        <div class="card">
+          <h3>Private by design</h3>
+          <p>Speech recognition runs on your own computer. Only text is sent to the AI service, never the audio. Your API key stays on your machine.</p>
+        </div>
+        <div class="card">
+          <h3>No guessed files</h3>
+          <p>Every result is checked: each line is covered, times always move forward and stay inside the song. If it cannot be made reliable, no file is written.</p>
+        </div>
+        <div class="card">
+          <h3>Works with your player</h3>
+          <p>Standard <code>.lrc</code> output, saved right next to the song, for foobar2000, MusicBee, Poweramp, AIMP, car stereos and other lyrics-aware players.</p>
+        </div>
+        <div class="card">
+          <h3>Keeps your structure</h3>
+          <p>Tags like <code>[verse]</code> and <code>[chorus]</code> and blank lines stay in place, untimed, so the file still reads the way you wrote it.</p>
+        </div>
+        <div class="card">
+          <h3>Point and click</h3>
+          <p>A simple window on Windows. For power users there is also a command-line tool, a pip package and a Docker image.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="how">
+    <div class="wrap">
+      <h2>How it works</h2>
+      <p class="sub">Two steps, each doing what it is best at.</p>
+      <div class="grid3">
+        <div class="card">
+          <span class="num">1</span>
+          <h3>Listen</h3>
+          <p>The <a href="https://github.com/SYSTRAN/faster-whisper">Whisper</a> speech-recognition model runs locally and finds when each word is sung.</p>
+        </div>
+        <div class="card">
+          <span class="num">2</span>
+          <h3>Match</h3>
+          <p>An AI model (Anthropic Claude or an OpenAI model, with your own key) lines your clean lyrics up with those timings, line by line.</p>
+        </div>
+        <div class="card">
+          <span class="num">3</span>
+          <h3>Check and save</h3>
+          <p>The timings are validated, then <code>song.lrc</code> is saved next to <code>song.mp3</code>.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="install">
+    <div class="wrap">
+      <h2>Install</h2>
+      <p class="sub">Windows takes about a minute. No administrator password needed.</p>
+      <ol class="steps">
+        <li><a href="https://github.com/rhapta-toddler/Auto-sync-LRC/releases/latest/download/Auto-sync-LRC-Setup.exe" data-goatcounter-click="download-windows-install" data-goatcounter-title="Download: Windows installer (install section)">Download Auto-sync-LRC-Setup.exe</a> and double-click it.</li>
+        <li>If Windows says <em>"Windows protected your PC"</em>, click <strong>More info</strong>, then <strong>Run anyway</strong>. The app is new and not yet code-signed; the installer is built in public by GitHub Actions from the <a href="https://github.com/rhapta-toddler/Auto-sync-LRC">open source code</a>.</li>
+        <li>Click <strong>Next</strong>, <strong>Install</strong>, <strong>Finish</strong>. In the window: choose your song, paste the lyrics, pick the language, paste your API key, and click <strong>Create synced lyrics</strong>.</li>
+      </ol>
+      <div class="note">
+        <strong>What you need:</strong> an API key from <a href="https://console.anthropic.com/settings/keys">Anthropic (Claude)</a> or <a href="https://platform.openai.com/api-keys">OpenAI</a>, billed by them for a few lines of text per song, and about 3 GB of free space the first time, for the speech model. Choose <em>Balanced</em> or <em>Fast</em> for a smaller download and quicker results.
+      </div>
+
+      <h3 style="margin-top:36px">Mac, Linux and developers</h3>
+      <p>No one-click installer for Mac or Linux yet. Install with pip (this also gives you the <code>auto-sync-lrc-gui</code> window):</p>
+      <pre><code>pip install git+https://github.com/rhapta-toddler/Auto-sync-LRC.git
+export ANTHROPIC_API_KEY=sk-ant-...
+auto-sync-lrc song.mp3 lyrics.txt --language ja</code></pre>
+      <p>Docker, OpenAI-compatible providers and every option are in the <a href="https://github.com/rhapta-toddler/Auto-sync-LRC#readme">README</a>.</p>
+    </div>
+  </section>
+
+  <section id="faq">
+    <div class="wrap">
+      <h2>Questions</h2>
+      <details>
+        <summary>What is an LRC file?</summary>
+        <p>A plain-text lyrics file where every line starts with a timestamp such as <code>[01:23.45]</code>. Players that support it highlight each line as it is sung.</p>
+      </details>
+      <details>
+        <summary>Is it really free?</summary>
+        <p>Yes, free and open source under the MIT license. It uses your own API key from Anthropic or OpenAI to match the lyrics. That service bills you directly and only receives a few lines of text per song.</p>
+      </details>
+      <details>
+        <summary>Is my music uploaded anywhere?</summary>
+        <p>No. Speech recognition runs on your computer. Only text (your lyrics and the words heard, with their timings) goes to the AI service.</p>
+      </details>
+      <details>
+        <summary>Which languages work best?</summary>
+        <p>Widely spoken languages work well at every setting. For Cantonese and other less common languages or dialects, use <em>Best quality</em>, because smaller speech models can mistake Cantonese for Mandarin, and check the result more carefully.</p>
+      </details>
+      <details>
+        <summary>Why does Windows warn me about the installer?</summary>
+        <p>The app is not yet code-signed, so SmartScreen does not recognise it. Click <strong>More info</strong>, then <strong>Run anyway</strong>. You can read every line of the source and the build on GitHub.</p>
+      </details>
+      <details>
+        <summary>Does it work on Mac or Linux?</summary>
+        <p>Yes, with pip or Docker (see above). A one-click installer is Windows-only for now.</p>
+      </details>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Auto-sync-LRC · MIT license</span>
+    <span><a href="https://github.com/rhapta-toddler/Auto-sync-LRC">Source on GitHub</a> · <a href="https://github.com/rhapta-toddler/Auto-sync-LRC/releases">All releases</a> · <a href="https://github.com/rhapta-toddler/Auto-sync-LRC/issues">Report a problem</a></span>
+  </div>
+</footer>
+
+<script>
+  // Live download count and release info from the GitHub Releases API.
+  // download_count covers every download of the installer, not only clicks from this page.
+  (function () {
+    var REPO = "rhapta-toddler/Auto-sync-LRC";
+    var ASSET = "Auto-sync-LRC-Setup.exe";
+    fetch("https://api.github.com/repos/" + REPO + "/releases?per_page=100")
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
+      .then(function (releases) {
+        var total = 0, latest = null;
+        releases.forEach(function (rel) {
+          if (rel.draft) return;
+          (rel.assets || []).forEach(function (a) {
+            if (a.name === ASSET) {
+              total += a.download_count;
+              if (!latest && !rel.prerelease) latest = { tag: rel.tag_name, size: a.size };
+            }
+          });
+        });
+        if (latest) {
+          document.getElementById("release-meta").textContent =
+            "Free · " + latest.tag + " · " + Math.round(latest.size / 1048576) + " MB · Windows 10 and 11";
+        }
+        if (total >= 10) {
+          document.getElementById("dl-count").textContent = total.toLocaleString("en-US");
+          document.getElementById("dl-count-item").hidden = false;
+        }
+      })
+      .catch(function () { /* keep the static text */ });
+  })();
+</script>
+
+<!-- Visit and download-click counting (GoatCounter: no cookies, no personal data).
+     Set GOATCOUNTER_CODE to the site code from https://www.goatcounter.com to turn it on. -->
+<script>
+  (function () {
+    var GOATCOUNTER_CODE = "";
+    if (!GOATCOUNTER_CODE) return;
+    var s = document.createElement("script");
+    s.async = true;
+    s.src = "https://gc.zgo.at/count.js";
+    s.setAttribute("data-goatcounter", "https://" + GOATCOUNTER_CODE + ".goatcounter.com/count");
+    document.body.appendChild(s);
+  })();
+</script>
+</body>
+</html>

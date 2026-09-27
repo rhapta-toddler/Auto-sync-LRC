@@ -1,0 +1,16 @@
+# Auto-sync-LRC
+
+> Free, open-source app (MIT) that turns an MP3 song and its plain-text lyrics into a synced .lrc lyrics file, in any language. Speech recognition (Whisper) runs on the user's own computer; an AI service (Anthropic Claude or OpenAI, with the user's own API key) matches the clean lyrics to the heard timings line by line. Only text is sent to the AI service, never audio.
+
+- Windows: one-click installer, no administrator rights needed: https://github.com/rhapta-toddler/Auto-sync-LRC/releases/latest/download/Auto-sync-LRC-Setup.exe
+- Mac and Linux: `pip install git+https://github.com/rhapta-toddler/Auto-sync-LRC.git`, or the Docker image; no one-click installer yet.
+- Needs: an Anthropic or OpenAI API key (billed by that service for a few lines of text per song), an internet connection, and about 3 GB of disk space the first time for the speech model.
+- Output: a standard .lrc file saved next to the MP3. Structural tags like [verse] and [chorus] and blank lines are kept, untimed.
+- Reliability: results are validated (every line covered, timestamps strictly increasing, inside the song's length); if the result is not reliable, no file is written.
+- Languages: any language Whisper supports, e.g. English, Spanish, French, German, Portuguese, Russian, Japanese, Korean, Mandarin, Cantonese (use the best-quality model for Cantonese).
+
+## Links
+
+- [Website](https://rhapta-toddler.github.io/Auto-sync-LRC/)
+- [Source code and full documentation](https://github.com/rhapta-toddler/Auto-sync-LRC#readme)
+- [Releases](https://github.com/rhapta-toddler/Auto-sync-LRC/releases)
