@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://rhapta-toddler.github.io/Auto-sync-LRC/sitemap.xml

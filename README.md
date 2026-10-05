@@ -4,6 +4,8 @@ Turn a song (MP3) and its plain lyrics into a synced `.lrc` file, so the words
 light up in time with the music in any lyrics-aware player. Works in any
 language.
 
+Website: <https://rhapta-toddler.github.io/Auto-sync-LRC/> (source in [`site/`](site/)).
+
 ## Install on Windows (no technical skills needed)
 
 1. Open the [latest release](https://github.com/luoarting-hub/Auto-sync-LRC/releases/latest)
